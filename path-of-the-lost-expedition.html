@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voyage of the Lost Isles</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #1a1d28;
+    --panel-2: #232735;
+    --ink: #e8e6df;
+    --muted: #9aa0b0;
+    --accent: #f4b860;
+    --accent-2: #6fd3c7;
+    --danger: #e2685f;
+    --good: #7ec97e;
+    --line: #3a3f52;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: radial-gradient(1200px 800px at 70% -10%, #16203a, var(--bg));
+    color: var(--ink);
+    font-family: "Segoe UI", Inter, system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { text-align: center; margin-bottom: 18px; }
+  h1 {
+    font-size: 30px; margin: 0 0 4px; letter-spacing: 0.5px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .hidden { display: none !important; }
+
+  /* ---- Menu ---- */
+  .menu { text-align: center; }
+  .menu h2 { margin: 4px 0 6px; }
+  .menu p { color: var(--muted); margin: 0 0 20px; }
+  .diffs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 8px; }
+  @media (max-width: 700px) { .diffs { grid-template-columns: 1fr; } }
+  .diff {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; cursor: pointer; text-align: left; transition: .12s;
+  }
+  .diff:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .diff h3 { margin: 0 0 8px; font-size: 18px; }
+  .diff.easy h3 { color: var(--good); }
+  .diff.normal h3 { color: var(--accent); }
+  .diff.hard h3 { color: var(--danger); }
+  .diff ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+  /* ---- Map ---- */
+  .map-card { margin-bottom: 20px; overflow-x: auto; }
+  .map-card h3 { margin: 0 0 10px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  svg { display: block; }
+  .legend { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* ---- Player bar ---- */
+  .pbar { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; font-size: 14px; }
+  .bar { width: 160px; height: 14px; background: #2c3142; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .bar > div { height: 100%; transition: width .3s; }
+  .hpfill { background: linear-gradient(90deg,#e2685f,#f4b860); }
+  .chip { background: var(--panel-2); border: 1px solid var(--line); border-radius: 20px; padding: 4px 12px; }
+
+  /* ---- Scene / combat ---- */
+  .scene-art { font-size: 46px; text-align: center; margin-bottom: 6px; }
+  .scene-title { font-size: 20px; font-weight: 700; margin: 0 0 8px; text-align: center; }
+  .scene-text { color: var(--ink); line-height: 1.55; font-size: 15px; margin-bottom: 16px; text-align: center; }
+
+  .vs { display: flex; justify-content: space-around; align-items: center; margin-bottom: 14px; gap: 14px; }
+  .fighter { text-align: center; flex: 1; }
+  .fighter .face { font-size: 40px; }
+  .fighter .name { font-weight: 700; margin: 4px 0; }
+  .ehp { width: 100%; max-width: 200px; height: 12px; background:#2c3142; border:1px solid var(--line); border-radius:8px; overflow:hidden; margin: 0 auto; }
+  .ehp > div { height:100%; background: linear-gradient(90deg,#e2685f,#e29b5f); transition: width .3s; }
+  .swords { font-size: 26px; color: var(--muted); }
+
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+  @media (max-width: 560px){ .actions{ grid-template-columns: 1fr 1fr; } }
+  button.choice, button.act {
+    text-align: left; background: var(--panel-2); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+    font-size: 14.5px; cursor: pointer; transition: .1s;
+  }
+  button.act { text-align: center; }
+  button.choice:hover, button.act:hover:not(:disabled) { border-color: var(--accent); background:#2a2f40; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .choice .arrow { color: var(--accent); margin-right: 8px; }
+  .choice small { color: var(--muted); }
+
+  .log {
+    margin-top: 14px; background: #14171f; border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--muted);
+    max-height: 120px; overflow-y: auto; line-height: 1.6;
+  }
+  .log .hit { color: var(--accent); }
+  .log .dmg { color: var(--danger); }
+  .log .heal { color: var(--good); }
+
+  .restart {
+    margin-top: 18px; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #14171f; font-weight: 700; border: none; padding: 12px 22px;
+    border-radius: 10px; cursor: pointer; font-size: 15px;
+  }
+  .restart:hover { filter: brightness(1.08); }
+  .end-win .scene-title { color: var(--good); }
+  .end-lose .scene-title { color: var(--danger); }
+  .center { text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⛵ Voyage of the Lost Isles</h1>
+    <div class="sub">A new chain of islands every voyage. Fight your way across them to reach the Throne Isle.</div>
+  </header>
+
+  <!-- MENU -->
+  <div class="card menu" id="menu">
+    <h2>Choose your voyage</h2>
+    <p>Difficulty shapes the map size, the enemies, and your supplies.</p>
+    <div class="diffs">
+      <div class="diff easy" onclick="startGame('easy')">
+        <h3>🌤️ Calm Seas</h3>
+        <ul><li>Short island chain</li><li>Weaker foes</li><li>Sturdy hull: 120 HP</li><li>4 healing rations</li></ul>
+      </div>
+      <div class="diff normal" onclick="startGame('normal')">
+        <h3>🌊 Open Waters</h3>
+        <ul><li>Longer chain</li><li>Fair fights</li><li>100 HP</li><li>3 healing rations</li></ul>
+      </div>
+      <div class="diff hard" onclick="startGame('hard')">
+        <h3>🌪️ Cursed Tides</h3>
+        <ul><li>Sprawling chain</li><li>Brutal foes</li><li>Fragile: 80 HP</li><li>2 healing rations</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="hidden">
+    <div class="card map-card">
+      <h3>The Island Chain</h3>
+      <div id="map"></div>
+      <div class="legend">🟢 cleared &nbsp; 🟡 you are here &nbsp; ⚪ reachable next &nbsp; ⚫ uncharted &nbsp; 👑 Throne Isle</div>
+    </div>
+
+    <div class="card" id="scene"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   DIFFICULTY PRESETS
+========================================================= */
+const DIFF = {
+  easy:   { name:"Calm Seas",   depth:4, hp:120, atk:22, spd:7, potions:4, escale:0.8, label:"🌤️" },
+  normal: { name:"Open Waters", depth:5, hp:100, atk:20, spd:6, potions:3, escale:1.0, label:"🌊" },
+  hard:   { name:"Cursed Tides",depth:6, hp:80,  atk:18, spd:5, potions:2, escale:1.3, label:"🌪️" },
+};
+
+const ISLAND_NAMES = ["Saltspire","Driftwood","Gull Rock","Ashen Key","Coral Maw","Brineholt",
+  "Foghaven","Wreckmoor","Storm Reef","Black Atoll","Pearl Cay","Thornshoal","Mistral Isle",
+  "Ravenstrand","Tidecaller","Dunemark"];
+
+const REST_NAMES = ["Quiet Cove","Hidden Spring","Palm Hollow","Sunlit Lagoon","Gentle Shore","Calm Inlet"];
+
+const ENEMIES = [
+  { n:"Reef Crab", e:"🦀" }, { n:"Sand Raider", e:"🗡️" }, { n:"Bog Lurker", e:"🐊" },
+  { n:"Sea Serpent", e:"🐍" }, { n:"Coral Golem", e:"🪨" }, { n:"Marsh Wraith", e:"👻" },
+  { n:"Pirate Brute", e:"🏴‍☠️" }, { n:"Storm Harpy", e:"🦅" }, { n:"Drowned One", e:"🧟" },
+  { n:"Giant Squid", e:"🦑" }, { n:"Shark", e:"🦈" }, { n:"Scorpion", e:"🦂" },
+];
+
+/* Hidden special effects — the player only learns which one after landing */
+const EFFECTS = {
+  venom:    { name:"Venomous",     icon:"🟢", desc:"poisons you — you lose HP each turn" },
+  armor:    { name:"Ironhide",     icon:"🛡️", desc:"takes far less damage from your hits" },
+  regen:    { name:"Regenerating", icon:"💚", desc:"heals itself every turn" },
+  frenzy:   { name:"Frenzied",     icon:"🔥", desc:"hits harder the lower its HP" },
+  vampiric: { name:"Vampiric",     icon:"🩸", desc:"heals from the wounds it deals you" },
+  thorns:   { name:"Thorned",      icon:"🌵", desc:"reflects part of your attack back" },
+  evasive:  { name:"Evasive",      icon:"💨", desc:"may dodge your attacks entirely" },
+  draining: { name:"Draining",     icon:"🕸️", desc:"saps your attack for this fight" },
+};
+const EFFECT_KEYS = Object.keys(EFFECTS);
+
+/* =========================================================
+   STATE
+========================================================= */
+let cfg, nodes, startId, bossId, currentId;
+let player, enemy, defending, combatOver;
+let fx = null;
+let log = [];
+
+const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const randf = (a,b) => a + Math.random()*(b-a);
+const pick = arr => arr[rand(0,arr.length-1)];
+
+/* =========================================================
+   MAP GENERATION  — random layered branching graph
+========================================================= */
+function generateMap() {
+  nodes = {};
+  const depth = cfg.depth;
+  const layers = [];
+  let uid = 0;
+  const usedNames = new Set();
+  const freshName = () => { let n; do { n = pick(ISLAND_NAMES); } while (usedNames.has(n) && usedNames.size < ISLAND_NAMES.length); usedNames.add(n); return n; };
+
+  for (let l = 0; l < depth; l++) {
+    let count;
+    if (l === 0 || l === depth - 1) count = 1;        // start & boss are single
+    else count = 3;                                    // every decision offers 3 islands
+    const layer = [];
+    for (let i = 0; i < count; i++) {
+      const id = "n" + (uid++);
+      const isBoss = (l === depth - 1);
+      const isStart = (l === 0);
+      const isRest = (!isStart && !isBoss) && Math.random() < 0.22; // some islands are safe healing stops
+      const ebase = ENEMIES[rand(0, ENEMIES.length-1)];
+      // each island rolls its OWN random hp, damage band, and speed
+      const tier = l;
+      const baseHp  = (24 + tier*9)   * cfg.escale * (isBoss?2.0:1);
+      const baseAtk = (4  + tier*1.4) * cfg.escale * (isBoss?1.4:1);
+      const ehp    = Math.round(baseHp * randf(0.8, 1.3));
+      const dmgMin = Math.max(1, Math.round(baseAtk * randf(0.7, 0.95)));
+      const dmgMax = Math.max(dmgMin+1, Math.round(baseAtk * randf(1.05, 1.45)));
+      const speed  = rand(1, 10);
+      layer.push({
+        id, layer:l, idx:i, next:[],
+        name: isStart ? "Home Port" : isBoss ? "Throne Isle" : isRest ? pick(REST_NAMES) : freshName(),
+        isStart, isBoss, isRest, cleared:false, visited:false,
+        enemy: (isStart || isRest) ? null : {
+          name: isBoss ? "The Tide King" : ebase.n,
+          face: isBoss ? "👑" : ebase.e,
+          hp: ehp, maxHp: ehp, dmgMin, dmgMax, speed,
+          effect: pick(EFFECT_KEYS),   // hidden until the player lands
+        },
+      });
+    }
+    layers.push(layer);
+  }
+
+  // connect every island to all islands of the next layer
+  // => each decision before the boss always offers 3 routes
+  for (let l = 0; l < depth - 1; l++) {
+    const cur = layers[l], nxt = layers[l+1];
+    cur.forEach(node => nxt.forEach(t => node.next.push(t.id)));
+  }
+
+  layers.flat().forEach(n => nodes[n.id] = n);
+  startId = layers[0][0].id;
+  bossId  = layers[depth-1][0].id;
+
+  // layout coordinates for SVG
+  const xStep = 130, yMid = 150, ySpread = 84;
+  Object.values(nodes).forEach(n => {
+    const layer = layers[n.layer];
+    n.x = 60 + n.layer * xStep;
+    const total = layer.length;
+    n.y = yMid + (n.idx - (total-1)/2) * ySpread;
+  });
+  window._mapWidth = 60 + (depth-1)*xStep + 60;
+}
+
+/* =========================================================
+   GAME FLOW
+========================================================= */
+function startGame(level) {
+  cfg = DIFF[level];
+  generateMap();
+  player = { hp: cfg.hp, maxHp: cfg.hp, atk: cfg.atk, speed: cfg.spd, potions: cfg.potions };
+  currentId = startId;
+  nodes[startId].visited = true;
+  nodes[startId].cleared = true;
+  log = [`⚓ You set sail on ${cfg.label} ${cfg.name}.`];
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  renderMap();
+  showTravel();
+}
+
+function reachable() {
+  return nodes[currentId].next.map(id => nodes[id]);
+}
+
+/* ---- Travel: choose next island ---- */
+function showTravel() {
+  renderMap();
+  const here = nodes[currentId];
+  const opts = reachable();
+  const pbar = playerBar();
+
+  if (opts.length === 0) { return; } // shouldn't happen except boss
+
+  let html = pbar;
+  html += `<div class="scene-art">${here.isStart ? "🏝️" : "✅"}</div>`;
+  html += `<div class="scene-title">${here.isStart ? "Home Port" : here.name + " — cleared!"}</div>`;
+  html += `<p class="scene-text">${here.isStart
+      ? "Your ship is provisioned. Plot a course — each of the three islands ahead hides a foe with a secret power." :
+      "The island is yours. Choose your next of three routes — each foe's power stays hidden until you land."}</p>`;
+  html += `<div class="choices">`;
+  opts.forEach(n => {
+    if (n.isRest) {
+      html += `<button class="choice" onclick="sailTo('${n.id}')">
+        <span class="arrow">⛺</span><b>${n.name}</b><br>
+        <small style="color:var(--good)">Rest Isle · no enemy · heal 5% HP · re-rolls your stats (up or down)</small></button>`;
+      return;
+    }
+    const en = n.enemy;
+    const faster = en.speed > player.speed ? ` · <span style="color:var(--danger)">⚡${en.speed} may strike first</span>` : ` · ⚡${en.speed} spd`;
+    const tag = `<small>${n.isBoss?"👑 BOSS — ":""}${en.face} ${en.name} · ${en.hp} HP · ${en.dmgMin}–${en.dmgMax} dmg${faster} · <span style="color:var(--accent-2)">⚠️ unknown power</span></small>`;
+    html += `<button class="choice" onclick="sailTo('${n.id}')">
+      <span class="arrow">⛵</span><b>${n.name}</b><br>${tag}</button>`;
+  });
+  html += `</div>`;
+  document.getElementById("scene").className = "card";
+  document.getElementById("scene").innerHTML = html;
+}
+
+function sailTo(id) {
+  currentId = id;
+  const node = nodes[id];
+  node.visited = true;
+  if (node.isRest) return visitRest(node);
+  enemy = { ...node.enemy };
+  defending = false; combatOver = false;
+  log.push(`🌊 You land on ${node.name}. ${enemy.face} ${enemy.name} (${enemy.hp} HP · ${enemy.dmgMin}–${enemy.dmgMax} dmg) appears!`);
+
+  // reveal the island's hidden power and build this fight's effect state
+  const info = EFFECTS[enemy.effect];
+  enemy.effectInfo = info;
+  const tier = node.layer;
+  fx = { poison:0, armorMult:1, regen:0, lifesteal:0, thorns:0, evade:0, frenzy:false, atkDrain:0 };
+  switch (enemy.effect) {
+    case "venom":    fx.poison = 2 + Math.ceil(tier*0.8); break;
+    case "armor":    fx.armorMult = 0.6; break;
+    case "regen":    fx.regen = Math.max(2, Math.round(enemy.maxHp*0.07)); break;
+    case "frenzy":   fx.frenzy = true; break;
+    case "vampiric": fx.lifesteal = 0.5; break;
+    case "thorns":   fx.thorns = 0.3; break;
+    case "evasive":  fx.evade = 0.28; break;
+    case "draining": fx.atkDrain = Math.max(2, Math.round(player.atk*0.25)); break;
+  }
+  log.push(`<span class="dmg">✨ Hidden power revealed — ${info.icon} ${enemy.name} is <b>${info.name}</b>: it ${info.desc}!</span>`);
+
+  // roll initiative for THIS island: faster side (plus luck) acts first
+  const enemyFirst = (enemy.speed + rand(0,3)) > (player.speed + rand(0,3));
+  if (enemyFirst) {
+    log.push(`<span class="dmg">⚡ ${enemy.name} is faster — it ambushes you!</span>`);
+    enemyTurn();
+  } else {
+    log.push(`⚡ You win the initiative and strike first.`);
+  }
+  renderMap();
+  if (!combatOver) renderCombat();
+}
+
+/* ---- Stat re-roll: can raise OR lower, biased slightly upward ---- */
+function rerollStats() {
+  const atkShift = rand(-2, 5);
+  const hpShift  = rand(-6, 14);
+  const spdShift = rand(-2, 2);
+  player.atk   = Math.max(6, player.atk + atkShift);
+  player.maxHp = Math.max(30, player.maxHp + hpShift);
+  player.speed = Math.max(1, Math.min(12, player.speed + spdShift));
+  if (player.hp > player.maxHp) player.hp = player.maxHp;   // clamp if max dropped
+  const f = n => (n >= 0 ? "+" : "") + n;
+  const col = n => n >= 0 ? "var(--good)" : "var(--danger)";
+  return `<span style="color:${col(atkShift)}">⚔️ ${f(atkShift)} atk</span>, ` +
+         `<span style="color:${col(hpShift)}">❤️ ${f(hpShift)} max HP</span>, ` +
+         `<span style="color:${col(spdShift)}">⚡ ${f(spdShift)} spd</span>`;
+}
+
+/* ---- Rest / healing island: small heal, then re-roll stats ---- */
+function visitRest(node) {
+  node.cleared = true;
+  const heal = Math.max(1, Math.round(player.maxHp * 0.05));
+  player.hp = Math.min(player.maxHp, player.hp + heal);
+  log.push(`⛺ You rest at ${node.name} and recover ${heal} HP.`);
+  const desc = rerollStats();
+  log.push(`<span class="heal">🎲 The tides reshape you: ${desc}</span>`);
+  renderMap();
+  showRest(node, heal);
+}
+
+function showRest(node, heal) {
+  let html = playerBar();
+  html += `<div class="scene-art">⛺</div>`;
+  html += `<div class="scene-title">${node.name}</div>`;
+  html += `<p class="scene-text">A safe shore — no enemy here. You recover <b>${heal} HP</b> (5% of max), and the tides <b>re-roll your stats</b>, which may rise or fall.</p>`;
+  html += `<div class="center"><button class="restart" onclick="showTravel()">Sail onward ⛵</button></div>`;
+  html += renderLog();
+  document.getElementById("scene").className = "card";
+  document.getElementById("scene").innerHTML = html;
+}
+
+/* =========================================================
+   COMBAT
+========================================================= */
+function dmg(base) { return Math.max(1, Math.round(base * (0.8 + Math.random()*0.4))); }
+
+function tickPlayer() {
+  // poison bites at the start of each of the player's turns
+  if (fx && fx.poison > 0) {
+    player.hp = Math.max(0, player.hp - fx.poison);
+    log.push(`<span class="dmg">🟢 Poison saps ${fx.poison} HP.</span>`);
+    if (player.hp <= 0) defeat();
+  }
+}
+
+function playerAttack() {
+  if (combatOver) return;
+  tickPlayer(); if (combatOver) return;
+
+  // evasive foes can dodge entirely
+  if (fx.evade && Math.random() < fx.evade) {
+    log.push(`<span class="dmg">💨 ${enemy.name} dodges your strike!</span>`);
+    enemyTurn(); if (!combatOver) renderCombat();
+    return;
+  }
+  let base = Math.max(1, player.atk - fx.atkDrain);
+  let d = dmg(base);
+  let crit = Math.random() < 0.15;
+  if (crit) d = Math.round(d * 1.8);
+  d = Math.max(1, Math.round(d * fx.armorMult));   // ironhide soaks damage
+  enemy.hp = Math.max(0, enemy.hp - d);
+  log.push(`<span class="hit">⚔️ You strike for ${d}${crit?" (CRIT!)":""}${fx.armorMult<1?" (armored)":""}.</span>`);
+
+  // thorns reflect part of your blow
+  if (fx.thorns) {
+    const r = Math.max(1, Math.round(d * fx.thorns));
+    player.hp = Math.max(0, player.hp - r);
+    log.push(`<span class="dmg">🌵 Thorns reflect ${r} back at you.</span>`);
+    if (player.hp <= 0) return defeat();
+  }
+  if (enemy.hp <= 0) return victory();
+  enemyTurn();
+  if (!combatOver) renderCombat();
+}
+
+function playerDefend() {
+  if (combatOver) return;
+  tickPlayer(); if (combatOver) return;
+  defending = true;
+  log.push(`🛡️ You raise your guard.`);
+  enemyTurn();
+  if (!combatOver) renderCombat();
+}
+
+function playerPotion() {
+  if (combatOver || player.potions <= 0) return;
+  tickPlayer(); if (combatOver) return;
+  player.potions--;
+  const heal = Math.round(player.maxHp * 0.35);
+  player.hp = Math.min(player.maxHp, player.hp + heal);
+  log.push(`<span class="heal">🍖 You eat a ration and recover ${heal} HP.</span>`);
+  enemyTurn();
+  if (!combatOver) renderCombat();
+}
+
+function enemyTurn() {
+  if (enemy.hp <= 0) return;
+  // regenerators mend themselves before striking
+  if (fx.regen && enemy.hp < enemy.maxHp) {
+    enemy.hp = Math.min(enemy.maxHp, enemy.hp + fx.regen);
+    log.push(`<span class="heal">💚 ${enemy.name} regenerates ${fx.regen} HP.</span>`);
+  }
+  let d = rand(enemy.dmgMin, enemy.dmgMax);
+  // frenzied foes hit harder as they weaken (up to +80%)
+  if (fx.frenzy) d = Math.round(d * (1 + (1 - enemy.hp/enemy.maxHp) * 0.8));
+  if (Math.random() < 0.12) { d = Math.round(d * 1.6); log.push(`<span class="dmg">💢 ${enemy.name} unleashes a heavy blow!</span>`); }
+  if (defending) { d = Math.round(d * 0.45); }
+  player.hp = Math.max(0, player.hp - d);
+  log.push(`<span class="dmg">${enemy.face} ${enemy.name} hits you for ${d}${defending?" (blocked)":""}.</span>`);
+  // vampiric foes drain what they deal
+  if (fx.lifesteal && d > 0) {
+    const h = Math.round(d * fx.lifesteal);
+    enemy.hp = Math.min(enemy.maxHp, enemy.hp + h);
+    log.push(`<span class="heal">🩸 ${enemy.name} drains ${h} HP from you.</span>`);
+  }
+  defending = false;
+  if (player.hp <= 0) return defeat();
+}
+
+function victory() {
+  combatOver = true;
+  const node = nodes[currentId];
+  node.cleared = true;
+  log.push(`<span class="hit">🏆 ${enemy.name} is defeated!</span>`);
+
+  if (node.isBoss) { renderMap(); return endScreen(true); }
+
+  // spoils — your stats RE-ROLL after a win and CAN drop as well as rise
+  const desc = rerollStats();
+  const healAmt = Math.round(player.maxHp * 0.15);
+  player.hp = Math.min(player.maxHp, player.hp + healAmt);
+  let reward = `${desc}, healed ${healAmt}. `;
+  if (Math.random() < 0.5) { player.potions++; reward += `🍖 Looted a ration (${player.potions}). `; }
+  log.push(`<span class="heal">✨ Your stats shift after ${node.name}: ${reward}</span>`);
+
+  renderMap();
+  renderCombat(); // shows victory state with "sail on" button
+}
+
+function defeat() {
+  combatOver = true;
+  renderMap();
+  endScreen(false);
+}
+
+/* =========================================================
+   RENDER
+========================================================= */
+function playerBar() {
+  const pct = (player.hp/player.maxHp)*100;
+  return `<div class="pbar">
+    <div>❤️ <b>${player.hp}</b>/${player.maxHp}</div>
+    <div class="bar"><div class="hpfill" style="width:${pct}%"></div></div>
+    <div class="chip">⚔️ ${player.atk} atk</div>
+    <div class="chip">⚡ ${player.speed} spd</div>
+    <div class="chip">🍖 ${player.potions} rations</div>
+  </div>`;
+}
+
+function renderCombat() {
+  const ehpPct = enemy.maxHp ? (enemy.hp/enemy.maxHp)*100 : 0;
+  let html = playerBar();
+  html += `<div class="vs">
+    <div class="fighter"><div class="face">🧭</div><div class="name">You</div></div>
+    <div class="swords">⚔️</div>
+    <div class="fighter">
+      <div class="face">${enemy.face}</div>
+      <div class="name">${enemy.name}</div>
+      <div class="ehp"><div style="width:${ehpPct}%"></div></div>
+      <small style="color:var(--muted)">${enemy.hp}/${enemy.maxHp} HP · ${enemy.dmgMin}–${enemy.dmgMax} dmg · ⚡${enemy.speed}</small>
+    </div>
+  </div>`;
+
+  if (enemy.effectInfo) {
+    html += `<p class="center" style="margin:-2px 0 14px;color:var(--accent-2);font-size:13px">⚠️ ${enemy.effectInfo.icon} <b>${enemy.effectInfo.name}</b> — ${enemy.effectInfo.desc}</p>`;
+  }
+
+  if (combatOver && enemy.hp <= 0) {
+    html += `<p class="scene-text center">🏆 You won the fight on <b>${nodes[currentId].name}</b>!</p>`;
+    html += `<div class="center"><button class="restart" onclick="showTravel()">Sail onward ⛵</button></div>`;
+  } else {
+    html += `<div class="actions">
+      <button class="act" onclick="playerAttack()">⚔️ Attack</button>
+      <button class="act" onclick="playerDefend()">🛡️ Defend</button>
+      <button class="act" onclick="playerPotion()" ${player.potions<=0?"disabled":""}>🍖 Ration (${player.potions})</button>
+    </div>`;
+  }
+  html += renderLog();
+  document.getElementById("scene").className = "card";
+  document.getElementById("scene").innerHTML = html;
+}
+
+function renderLog() {
+  const recent = log.slice(-7).reverse();
+  return `<div class="log">${recent.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+
+function endScreen(win) {
+  const node = nodes[currentId];
+  let html = `<div class="scene-art">${win ? "👑" : "💀"}</div>`;
+  html += `<div class="scene-title">${win ? "The Throne Isle is Yours!" : "Lost to the Tides"}</div>`;
+  html += `<p class="scene-text">${win
+    ? `You struck down the Tide King and claimed the Throne Isle. Your voyage on ${cfg.label} ${cfg.name} is the stuff of legend!`
+    : `${enemy.name} on ${node.name} was too much. Your ship is lost to the waves... but every voyage charts a new sea.`}</p>`;
+  html += `<div class="center"><button class="restart" onclick="backToMenu()">⚓ New Voyage</button></div>`;
+  html += renderLog();
+  const s = document.getElementById("scene");
+  s.className = "card " + (win ? "end-win" : "end-lose");
+  s.innerHTML = html;
+}
+
+function backToMenu() {
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("menu").classList.remove("hidden");
+}
+
+/* ---- SVG map ---- */
+function renderMap() {
+  const w = window._mapWidth, h = 300;
+  const reach = new Set(nodes[currentId].cleared ? nodes[currentId].next : []);
+  let edges = "", circles = "";
+
+  Object.values(nodes).forEach(n => {
+    n.next.forEach(tid => {
+      const t = nodes[tid];
+      const active = (n.id === currentId && n.cleared) || (n.cleared && t.cleared);
+      edges += `<line x1="${n.x}" y1="${n.y}" x2="${t.x}" y2="${t.y}"
+        stroke="${active ? "#f4b860" : "#3a3f52"}" stroke-width="${active?3:2}" opacity="${active?0.9:0.5}"/>`;
+    });
+  });
+
+  Object.values(nodes).forEach(n => {
+    let fill = "#232735", stroke = "#3a3f52", ring = "";
+    let face = n.isBoss ? "👑" : n.isStart ? "🏠" : n.isRest ? "⛺" : (n.enemy ? n.enemy.face : "•");
+    if (n.cleared) { stroke = "#7ec97e"; fill = "rgba(126,201,126,0.15)"; }
+    if (reach.has(n.id)) { stroke = "#e8e6df"; }
+    if (n.id === currentId) {
+      stroke = "#f4b860"; fill = "rgba(244,184,96,0.18)";
+      ring = `<circle cx="${n.x}" cy="${n.y}" r="26" fill="none" stroke="#f4b860" stroke-width="2" opacity="0.5"/>`;
+    }
+    const dim = (!n.cleared && !reach.has(n.id) && n.id !== currentId) ? 0.55 : 1;
+    circles += `${ring}
+      <circle cx="${n.x}" cy="${n.y}" r="20" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${dim}"/>
+      <text x="${n.x}" y="${n.y+6}" font-size="18" text-anchor="middle" opacity="${dim}">${face}</text>
+      <text x="${n.x}" y="${n.y+38}" font-size="10.5" text-anchor="middle" fill="#9aa0b0" opacity="${dim}">${n.cleared||reach.has(n.id)||n.id===currentId? n.name : "???"}</text>`;
+  });
+
+  document.getElementById("map").innerHTML =
+    `<svg viewBox="0 0 ${w} ${h}" width="${Math.max(w, 600)}" height="${h}">${edges}${circles}</svg>`;
+}
+</script>
+</body>
+</html>
